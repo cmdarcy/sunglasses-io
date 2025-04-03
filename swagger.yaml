@@ -9,3 +9,149 @@ schemes:
 basePath: '/api'
 produces:
     - 'application/json'
+tags:
+  - name: brands
+  - name: products
+  - name: user
+  - name: cart
+paths:
+  /login:
+    post:
+      summary: route for user to login
+      tags:
+        - user
+      parameters:
+        - in: "body"
+          name: username
+          required: true
+          schema:
+            type: string
+        - in: "body"
+          name: password
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+            description: Successful login
+        "400":  
+            description: Response incorrectly formatted  
+        "401":  
+            description: Invalid username or password
+  /products:
+    get:
+      summary: returns all products or filtered products based on search query  
+      tags:
+        - products
+      parameters:
+        - in: query
+          name: searchTerm
+          type: string
+          required: false
+      responses:
+        "200":
+          description: Successful operation
+        "400":
+          description: No Products found
+  /brands:
+    get:
+      tags:
+        - brands
+      summary: returns brands
+      responses:
+        "200":
+          description: Successful operation
+        "400":
+          description: No brands found
+  /brands/{brandId}/products:
+    get:
+      tags:
+        - products
+        - brands
+      summary: returns all products of specific brand
+      parameters:
+        - in: path
+          name: brandId
+          type: string
+          required: true
+      responses:
+        "200":
+          description: Successful operation
+        "400":
+          description: No products found
+  /me/cart:
+    get:
+      tags:
+        - cart
+      summary: returns cart
+      responses:
+        "200":
+          description: Successful operation
+        "404":
+          description: User must login to view cart
+    post:
+      tags:
+        - cart
+      summary: add product to cart
+      parameters:
+        - in: body
+          name: product
+          schema:
+            $ref: "#/definitions/Product"
+      responses:
+        "200":
+          description: Successfully added product to cart
+        "404":
+          description: User must login to add to cart
+  /me/cart/{productId}:
+    put:
+      tags:
+        - cart
+      summary: update product in cart
+      parameters:
+        - in: path
+          name: productId
+          type: string
+          required: true
+      responses:
+        "200": 
+          description: Successfully updated product in cart
+        "404":
+          description: User must login to update cart
+    delete:
+      tags:
+        - cart
+      summary: remove product from cart
+      parameters:
+        - in: path
+          name: productId
+          type: string
+          required: true
+      responses:
+        "200":
+          description: Successfully removed product from cart
+        "404":
+          description: User must login to delete items from cart
+definitions:
+  Product:
+    type: object
+    properties: 
+      id:
+        type: string
+        description: Product id
+      categoryId:
+        type: string
+        description: brand id
+      name:
+        type: string
+        description: product name
+      description:
+        type: string
+        description: product description
+      price:
+        type: number
+      imageUrls:
+        type: array
+        items: 
+          type: string
+        description: array of image urls
