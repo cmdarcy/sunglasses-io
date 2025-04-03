@@ -51,7 +51,11 @@ paths:
       responses:
         "200":
           description: Successful operation
-        "400":
+          schema:
+            type: array
+            items: 
+              $ref: "#/definitions/Product"
+        "404":
           description: No Products found
   /brands:
     get:
@@ -61,7 +65,11 @@ paths:
       responses:
         "200":
           description: Successful operation
-        "400":
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Brand"
+        "404":
           description: No brands found
   /brands/{brandId}/products:
     get:
@@ -77,7 +85,13 @@ paths:
       responses:
         "200":
           description: Successful operation
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Product"
         "400":
+          description: Invalid brand id
+        "404":
           description: No products found
   /me/cart:
     get:
@@ -87,7 +101,9 @@ paths:
       responses:
         "200":
           description: Successful operation
-        "404":
+          schema:
+            $ref: "#/definitions/Cart"
+        "403":
           description: User must login to view cart
     post:
       tags:
@@ -99,9 +115,13 @@ paths:
           schema:
             $ref: "#/definitions/Product"
       responses:
-        "200":
+        "201":
           description: Successfully added product to cart
-        "404":
+          schema:
+            $ref: "#/definitions/Product"
+        "400":
+          description: Invalid product supplied
+        "403":
           description: User must login to add to cart
   /me/cart/{productId}:
     put:
@@ -114,10 +134,16 @@ paths:
           type: string
           required: true
       responses:
-        "200": 
+        "201": 
           description: Successfully updated product in cart
-        "404":
+          schema:
+            $ref: "#/definitions/Product"
+        "400":
+          description: Invalid product id
+        "401":
           description: User must login to update cart
+        "404":
+          description: Product not found in cart
     delete:
       tags:
         - cart
@@ -130,8 +156,12 @@ paths:
       responses:
         "200":
           description: Successfully removed product from cart
-        "404":
+        "400":
+          description: Invalid product supplied
+        "403":
           description: User must login to delete items from cart
+        "404":
+          description: Product not found in cart
 definitions:
   Product:
     type: object
@@ -155,3 +185,27 @@ definitions:
         items: 
           type: string
         description: array of image urls
+  Brand:
+    type: object
+    properties: 
+      id:
+        type: string
+        description: brand id
+      name:
+        type: string
+        description: brand name
+  Cart:
+    type: array
+    items: 
+      type: object
+      properties: 
+        quantity:
+          type: number
+        proudctId:
+          type: string
+        categoryId:
+          type: string
+          description: brand id
+        name:
+          type: string
+          description: product name
