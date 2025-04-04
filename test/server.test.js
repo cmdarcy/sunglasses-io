@@ -17,14 +17,37 @@ describe('Brands', () => {
                 done()
             })
         })
-     })
+    })
     describe('/GET brands/:brandId/products', () => { 
-
-     })
+        
+    })
 });
 
 describe('Products', () => {
     describe('/GET products', () => { 
+        it('should get all the products when no search query is present', (done) => {
+            chai.request(server).get('/products').end((err, res) => {
+                res.should.have.status(200)
+                res.body.should.be.an('array')
+                res.body.length.should.be.eql(11)
+                done()
+            })
+        })
+        it('should return a 404 error if no products contain search query', (done) => {
+            const searchTerm = 'blue'
+            chai.request(server).get(`/products?searchTerm=${searchTerm}`).end((err, res) => {
+                res.should.have.status(404)
+                done()
+            })
+        })
+        it('should return a filtered list of products based on search query otherwise', (done) => {
+            const searchTerm = 'glasses'
+            chai.request(server).get(`/products?searchTerm=${searchTerm}`).end((err, res) => {
+                res.should.have.status(200)
+                res.body.should.be.an('array')
+                done()
+            })
+        })
         
      })
 });
