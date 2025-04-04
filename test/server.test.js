@@ -7,8 +7,45 @@ chai.use(chaiHttp);
 
 // TODO: Write tests for the server
 
-describe('Brands', () => {});
+describe('Brands', () => {
+    describe('/GET brands', () => { 
+        it('should get all the brands', (done) => {
+            chai.request(server).get('/brands').end((err, res) => {
+                res.should.have.status(200)
+                res.body.should.be.an('array')
+                res.body.length.should.be.eql(5)
+                done()
+            })
+        })
+     })
+    describe('/GET brands/:brandId/products', () => { 
 
-describe('Login', () => {});
+     })
+});
 
-describe('Cart', () => {});
+describe('Products', () => {
+    describe('/GET products', () => { 
+        
+     })
+});
+
+describe('Login', () => {
+    describe('/POST login', () => { 
+
+     })
+});
+
+describe('Cart', () => {
+    describe('/GET me/cart', () => { 
+        
+     })
+    describe('/POST me/cart', () => { 
+
+     })
+    describe('/PUT me/cart/:productId', () => { 
+
+     })
+    describe('/DELETE me/cart/:productId', () => { 
+
+     })
+});
