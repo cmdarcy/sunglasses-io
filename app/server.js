@@ -28,4 +28,27 @@ app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`);
 });
 
+app.get('/brands', (req, res) => {
+	res.writeHead(200, 'Successful operation', { "Content-Type": "application/json" })
+	return res.end(JSON.stringify(brands))
+})
+
+app.get('/products', (req, res) => {
+	if (req.query.searchTerm) {
+		//filter products by searchTerm compared to product name
+		const filteredProducts = products.filter((p) =>p.name.includes(req.query.searchTerm))
+		if (filteredProducts.length > 0) {
+			//if filter returns product lis greater than 0 return that list of products with a 200
+			res.writeHead(200, 'Successful operation', { "Content-Type": "application/json" })
+			return res.end(JSON.stringify(filteredProducts))
+		} else {
+			//else return 404
+			res.writeHead(404, 'No products found',)
+			return res.end()
+		}
+	} else {
+		res.writeHead(200, 'Successful operation', { "Content-Type": "application/json" })
+		return res.end(JSON.stringify(products))
+	}
+})
 module.exports = app;
