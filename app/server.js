@@ -33,6 +33,22 @@ app.get('/brands', (req, res) => {
 	return res.end(JSON.stringify(brands))
 })
 
+app.get('/brands/:brandId/products', (req, res) => {
+	const {brandId} = req.params
+	const brand = brands.find((b) => b.id === brandId)
+	if (!brand) {
+		res.writeHead(404, 'Brand does not exist')
+		return res.end()
+	}
+	const brandProducts = products.filter((p) => p.categoryId === brandId)
+	if (brandProducts.length === 0) {
+		res.writeHead(404, 'No products for given brand exist')
+		return res.end()
+	}
+	res.writeHead(200, 'Successful operation', { "Content-Type": "application/json" })
+	return res.end(JSON.stringify(brandProducts))
+})
+
 app.get('/products', (req, res) => {
 	if (req.query.searchTerm) {
 		//filter products by searchTerm compared to product name

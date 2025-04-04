@@ -19,6 +19,24 @@ describe('Brands', () => {
         })
     })
     describe('/GET brands/:brandId/products', () => { 
+        it('should return 404 if the supplied brand does not exist or no products for that brand exist', (done) => {
+            const brandId = '6'
+            chai.request(server).get(`/brands/${brandId}/products`).end((err, res) => {
+                res.should.have.status(404)
+                done()
+            })
+        })
+        
+        it('should get all the prouducts of one specific brand when a valid brandId is supplied', (done) => {
+            const brandId = '2'
+            chai.request(server).get(`/brands/${brandId}/products`).end((err, res) => {
+                res.should.have.status(200)
+                res.body.should.be.an('array')
+                res.body.length.should.be.eql(2)
+                done()
+            })
+        })
+        
         
     })
 });
