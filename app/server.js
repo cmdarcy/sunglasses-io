@@ -14,7 +14,23 @@ app.use(bodyParser.json());
 const users = require('../initial-data/users.json');
 const brands = require('../initial-data/brands.json');
 const products = require('../initial-data/products.json');
-const tokens = []
+
+const validateRequestToken = (request) => {
+	const authHeader = request.headers['authorization']
+	if (!authHeader) {
+		return {valid: false , error: 'Auth header not provided'} 
+	}
+	const token = authHeader.split(' ')[1]
+	if (!token) {
+		return {valid: false,  error: 'Header not formatted correctly'} 
+	}
+	try {
+		const decoded = jwt.verify(token, SECRET_KEY)
+		return {valid: true, decoded}
+	} catch (error) {
+		return {valid: false, error: error.message}
+	}
+}
 
 // Error handling
 app.use((err, req, res, next) => {
@@ -96,20 +112,21 @@ app.post('/login', (req, res) => {
 		return res.end()
 	}
 	res.writeHead(200, 'Successful operation', {"Content-Type": "application/json"})
-	//check if token has been created for userName
-	//TODO add expiry time logic to token search
-	const currentAccessToken = tokens.find((t) => t.userName === user.login.username)
+	const newToken = jwt.sign({userName: user.login.username}, SECRET_KEY, {expiresIn: '1 day'})
+	return res.end(JSON.stringify(newToken))
+})
 
-	//if token doesn't already exist create a token, save in tokens, and return in response
-	if (!currentAccessToken) {
-		//TODO add expiry time logic to token creation
-		const newJwt = jwt.sign({userName: user.login.username}, SECRET_KEY, {expiresIn: '1 day'})
-		const newToken = {userName: user.login.username, jwt: newJwt} 
-		tokens.push(newToken)
-		return res.end(JSON.stringify(newToken.jwt))
+app.get('/me/cart', (req, res) => {
+	const response = validateRequestToken(req)
+	if (!response.valid) {
+		res.writeHead(403)
+		return res.end()
 	}
-	//return  current token in response
-	return res.end(JSON.stringify(currentAccessToken.jwt))
+	const {userName} = response.decoded
+	const user = users.find(u => u.login.username === userName)
+	const cart = user.cart
+	res.writeHead(200, 'Successful operation', { "Content-Type": "application/json" })
+	return res.end(JSON.stringify(cart))
 })
 module.exports = app;
-module.exports.tokens = tokens
+module.exports.validateRequestToken = validateRequestToken

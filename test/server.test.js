@@ -2,9 +2,9 @@ const chai = require('chai');
 const chaiHttp = require('chai-http');
 const server = require('../app/server'); // Adjust the path as needed
 const jwt = require('jsonwebtoken');
-const tokens = require('../app/server').tokens
 require('dotenv').config()
 const SECRET_KEY = process.env.SECRET_KEY
+const validateRequestToken = require('../app/server').validateRequestToken
 
 const should = chai.should();
 chai.use(chaiHttp);
@@ -98,27 +98,62 @@ describe('Login', () => {
             })
         })
         it('should respond with a new jwt if no current access token existed for user', (done) => {
-            const testJwt = jwt.sign({userName: user.userName}, SECRET_KEY)
+            const testJwt = jwt.sign({userName: user.userName}, SECRET_KEY, {expiresIn: '1 day'})
             chai.request(server).post('/login').send(user).end((err, res) => {
                 res.should.have.status(200)
                 res.body.should.deep.equal(testJwt)
                 done()
             })
         })
-        it('should respond with the current jwt for user if one already exists', (done) => {
-            const currentToken = tokens.find((t) => t.userName === user.userName)
-            chai.request(server).post('/login').send(user).end((err, res) => {
-                res.should.have.status(200)
-                res.body.should.deep.equal(currentToken.jwt)
-                done()
-            })
-        })
      })
 });
 
+describe('validateRequestToken', () => {
+    //TODO refactor setup???
+    const userName = 'yellowleopard753'
+    const token = jwt.sign({userName}, SECRET_KEY, {expiresIn: '1 day'})
+    const request = {
+        headers: {
+            'authorization': `Bearer ${token}`
+        }
+    }
+    it('should return an object with valid prop equal to true and a decoded prop if request contains a valid jwt', () => {
+        const response = validateRequestToken(request) 
+        response.valid.should.be.true
+        response.should.have.own.property('decoded')
+    })
+    const invalidToken = jwt.sign({userName}, 'invalid_key', {expiresIn: '1 day'})
+    const invalidRequest = {
+        headers: {
+            'authorization': `Bearer ${invalidToken}`
+        }
+    }
+    it('should return an object with valid prop equal to false and an error prop if request contains an invalid jwt or no jwt', () => {
+        const response = validateRequestToken(invalidRequest) 
+        response.valid.should.be.false
+        response.should.have.own.property('error')
+    })
+})
+
 describe('Cart', () => {
+    const userName = 'yellowleopard753'
+    const token = jwt.sign({userName}, SECRET_KEY, {expiresIn: '1 day'})
     describe('/GET me/cart', () => { 
-        
+        it('should respond with 403 if no token provided or token is invalid', (done) => {
+            //TODO finish testing logic
+            chai.request(server).get('/me/cart').end((err, res) => {
+                res.should.have.status(403)
+                done()
+            })
+        })
+        it('should respond with 200 and return the cart if valid token is supplied', (done) => {
+            //TODO finish testing logic
+            chai.request(server).get('/me/cart').set('Authorization', `Bearer ${token}`).end((err, res) => {
+                res.should.have.status(200)
+                res.body.should.be.an('array')
+                done()
+            })
+        })
      })
     describe('/POST me/cart', () => { 
 
