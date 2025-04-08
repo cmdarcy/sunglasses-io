@@ -1,6 +1,10 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const server = require('../app/server'); // Adjust the path as needed
+const jwt = require('jsonwebtoken');
+const tokens = require('../app/server').tokens
+require('dotenv').config()
+const SECRET_KEY = process.env.SECRET_KEY
 
 const should = chai.should();
 chai.use(chaiHttp);
@@ -72,7 +76,43 @@ describe('Products', () => {
 
 describe('Login', () => {
     describe('/POST login', () => { 
-
+        it('should return a 400 error if an invalid userName or password is supplied in request', (done) => {
+            const invalidUser = {userName: '', password: 567}
+            chai.request(server).post('/login').send(invalidUser).end((err, res) => {
+                res.should.have.status(400)
+                done()
+            })
+        })
+        it('should return a 401 error if an incorect username or password is supplied in request', (done) => {
+            const incorrectUser = {userName:'yellowleopard753', password: 'incorrectPW' }
+            chai.request(server).post('/login').send(incorrectUser).end((err, res) => {
+                res.should.have.status(401)
+                done()
+            })
+        })
+        const user = {userName: 'yellowleopard753', password: 'jonjon'}
+        it('should return 200 if a valid username and password are supplied in request', (done) => {
+            chai.request(server).post('/login').send(user).end((err, res) => {
+                res.should.have.status(200)
+                done()
+            })
+        })
+        it('should respond with a new jwt if no current access token existed for user', (done) => {
+            const testJwt = jwt.sign({userName: user.userName}, SECRET_KEY)
+            chai.request(server).post('/login').send(user).end((err, res) => {
+                res.should.have.status(200)
+                res.body.should.deep.equal(testJwt)
+                done()
+            })
+        })
+        it('should respond with the current jwt for user if one already exists', (done) => {
+            const currentToken = tokens.find((t) => t.userName === user.userName)
+            chai.request(server).post('/login').send(user).end((err, res) => {
+                res.should.have.status(200)
+                res.body.should.deep.equal(currentToken.jwt)
+                done()
+            })
+        })
      })
 });
 
