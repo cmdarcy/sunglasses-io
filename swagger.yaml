@@ -34,6 +34,8 @@ paths:
       responses:
         "200":
             description: Successful login
+            schema:
+              type: string
         "400":  
             description: Response incorrectly formatted  
         "401":  
@@ -98,6 +100,12 @@ paths:
       tags:
         - cart
       summary: returns cart
+      parameters:
+        - in: header
+          name: authorization
+          type: string
+          description: JWT token in the format of "Bearer JWT""
+          required: true      
       responses:
         "200":
           description: Successful operation
@@ -110,6 +118,11 @@ paths:
         - cart
       summary: add product to cart
       parameters:
+        - in: header
+          name: authorization
+          type: string
+          description: JWT token in the format of "Bearer JWT""
+          required: true 
         - in: body
           name: product
           schema:
@@ -118,7 +131,7 @@ paths:
         "201":
           description: Successfully added product to cart
           schema:
-            $ref: "#/definitions/Product"
+            $ref: "#/definitions/Cart"
         "400":
           description: Invalid product supplied
         "403":
@@ -129,15 +142,24 @@ paths:
         - cart
       summary: update product in cart
       parameters:
+        - in: header
+          name: authorization
+          type: string
+          description: JWT token in the format of "Bearer JWT""
+          required: true 
         - in: path
           name: productId
           type: string
           required: true
+        - in: body
+          name: new_quantity
+          schema:
+            $ref: "#/definitions/New_Quantity"
       responses:
         "201": 
           description: Successfully updated product in cart
           schema:
-            $ref: "#/definitions/Product"
+            $ref: "#/definitions/Cart"
         "400":
           description: Invalid product id
         "401":
@@ -149,6 +171,11 @@ paths:
         - cart
       summary: remove product from cart
       parameters:
+        - in: header
+          name: authorization
+          type: string
+          description: JWT token in the format of "Bearer JWT""
+          required: true 
         - in: path
           name: productId
           type: string
@@ -156,6 +183,8 @@ paths:
       responses:
         "200":
           description: Successfully removed product from cart
+          schema:
+            $ref: "#/definitions/Cart"
         "400":
           description: Invalid product supplied
         "403":
@@ -209,3 +238,8 @@ definitions:
         name:
           type: string
           description: product name
+  New_Quantity:
+    type: object
+    properties: 
+      quantity:
+        type: number
