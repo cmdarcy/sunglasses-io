@@ -22,21 +22,36 @@ describe('Brands', () => {
         .end((err, res) => {
           res.should.have.status(200);
           res.body.should.be.an('array');
-          res.body.length.should.be.eql(5);
+          res.body.should.not.be.empty;
+          res.body[0].should.have.all.keys('id', 'name');
           done();
         });
     });
   });
 
   describe('/GET brands/:brandId/products', () => {
-    it('should return 404 if the supplied brand does not exist or no products for that brand exist', (done) => {
-      const brandId = '6';
+    it('should response with 404 status when the supplied brand does not exist', (done) => {
+      const brandId = '7';
 
       chai
         .request(server)
         .get(`/brands/${brandId}/products`)
         .end((err, res) => {
           res.should.have.status(404);
+          done();
+        });
+    });
+
+    it('should respond with 200 status and return an empty array when no products for that brand exist', (done) => {
+      const brandId = '6';
+
+      chai
+        .request(server)
+        .get(`/brands/${brandId}/products`)
+        .end((err, res) => {
+          res.should.have.status(200);
+          res.body.should.be.an('array');
+          res.body.should.be.empty;
           done();
         });
     });

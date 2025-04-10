@@ -91,10 +91,8 @@ paths:
             type: array
             items:
               $ref: "#/definitions/Product"
-        "400":
-          description: Invalid brand id
         "404":
-          description: No products found
+          description: Invalid brand id
   /me/cart:
     get:
       tags:

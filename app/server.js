@@ -67,10 +67,6 @@ app.get('/brands/:brandId/products', (req, res) => {
   }
 
   const brandProducts = products.filter((p) => p.categoryId === brandId);
-  if (brandProducts.length === 0) {
-    res.writeHead(404, 'No products for given brand exist');
-    return res.end();
-  }
 
   res.writeHead(200, 'Successful operation', {
     'Content-Type': 'application/json',
