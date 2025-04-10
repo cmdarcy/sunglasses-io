@@ -128,5 +128,92 @@ app.get('/me/cart', (req, res) => {
 	res.writeHead(200, 'Successful operation', { "Content-Type": "application/json" })
 	return res.end(JSON.stringify(cart))
 })
+
+app.post('/me/cart', (req, res) => {
+	const response = validateRequestToken(req)
+	if (!response.valid) {
+		res.writeHead(403)
+		return res.end()
+	}
+	//check if body of request is empty
+	if (Object.keys(req.body).length === 0) {
+		res.writeHead(400)
+		return res.end()
+	}
+	const product = req.body
+	const validProduct = products.find(p => p.id === product.id)
+	if (!validProduct) {
+		res.writeHead(400)
+		return res.end()
+	}
+	const {userName} = response.decoded
+	const user = users.find(u => u.login.username === userName)
+	const {cart} = user
+	const validProductIndex = cart.findIndex(p => p.id === product.id)
+	if (validProductIndex === -1) {
+		const {imageUrls, description, ...rest} = validProduct
+		const cartProduct = {...rest, quantity: 1}
+		cart.push(cartProduct)
+	} else {
+		cart[validProductIndex].quantity += 1
+	}
+	res.writeHead(201, 'Successful operation', { "Content-Type": "application/json" })
+	return res.end(JSON.stringify(cart))
+})
+
+app.put('/me/cart/:productId', (req, res) => {
+	const response = validateRequestToken(req)
+	if (!response.valid) {
+		res.writeHead(403)
+		return res.end()
+	}
+	const {productId} = req.params
+	const validProduct = products.find((p) => p.id === productId)
+	if (!validProduct) {
+		res.writeHead(400)
+		return res.end()
+	}
+	const {userName} = response.decoded
+	const user = users.find(u => u.login.username === userName)
+	const {cart} = user
+	const cartProduct = cart.find((p) => p.id === validProduct.id)
+	if (!cartProduct) {
+		res.writeHead(404)
+		return res.end()
+	}
+	//update quantity of cartProduct to quantity provided in request body
+	const newQuantity = req.body
+	cartProduct.quantity = newQuantity.quantity
+	res.writeHead(201, 'Successful operation', { "Content-Type": "application/json" })
+	return res.end(JSON.stringify(cart))
+})
+
+app.delete('/me/cart/:productId', (req, res) => {
+	const response = validateRequestToken(req)
+	if (!response.valid) {
+		res.writeHead(403)
+		return res.end()
+	}
+	const {productId} = req.params
+	const validProduct = products.find((p) => p.id === productId)
+	if (!validProduct) {
+		res.writeHead(400)
+		return res.end()
+	}
+	const {userName} = response.decoded
+	const user = users.find(u => u.login.username === userName)
+	const {cart} = user
+	const cartProductIndex = cart.findIndex((p) => p.id === validProduct.id)
+	if (cartProductIndex === -1) {
+		res.writeHead(404)
+		return res.end()
+	}
+	cart.splice(cartProductIndex, 1)
+	res.writeHead(200, 'Successful operation', { "Content-Type": "application/json" })
+	return res.end(JSON.stringify(cart))
+})
+
+
 module.exports = app;
 module.exports.validateRequestToken = validateRequestToken
+module.exports.users = users

@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config()
 const SECRET_KEY = process.env.SECRET_KEY
 const validateRequestToken = require('../app/server').validateRequestToken
+const users = require('../app/server').users
 
 const should = chai.should();
 chai.use(chaiHttp);
@@ -138,30 +139,158 @@ describe('validateRequestToken', () => {
 describe('Cart', () => {
     const userName = 'yellowleopard753'
     const token = jwt.sign({userName}, SECRET_KEY, {expiresIn: '1 day'})
+    const user = users.find(u => u.login.username === userName)
+
     describe('/GET me/cart', () => { 
         it('should respond with 403 if no token provided or token is invalid', (done) => {
-            //TODO finish testing logic
             chai.request(server).get('/me/cart').end((err, res) => {
                 res.should.have.status(403)
                 done()
             })
         })
         it('should respond with 200 and return the cart if valid token is supplied', (done) => {
-            //TODO finish testing logic
             chai.request(server).get('/me/cart').set('Authorization', `Bearer ${token}`).end((err, res) => {
                 res.should.have.status(200)
-                res.body.should.be.an('array')
+                res.body.should.deep.equal(user.cart)
                 done()
             })
         })
-     })
+    })
+
     describe('/POST me/cart', () => { 
+        it('should respond with 403 when no token provided or token is invalid', (done) => {
+            chai.request(server).post('/me/cart').end((err, res) => {
+                res.should.have.status(403)
+                done()
+            })
+        })
+        it('should respond with 400 when no product is supplied', (done) => {
+            chai.request(server).post('/me/cart').set('Authorization', `Bearer ${token}`).end((err, res) => {
+                res.should.have.status(400)
+                done()
+            })
+        })
+        it('should respond with 400 when product supplied is invalid', (done) => {
+            const invalidProduct = {"id": "INVALID_ID",
+        "categoryId": "1",
+        "name": "Black Sunglasses",
+        "description": "The best glasses in the world",
+        "price":100,
+        "imageUrls":["https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg","https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg","https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg"]}
+        chai.request(server).post('/me/cart').set('Authorization', `Bearer ${token}`).send(invalidProduct).end((err, res) => {
+            res.should.have.status(400)
+            done()
+        })
+    })
+    it("should respond with 201, add product to given users cart and return the user's cart", (done) => {
+        const validProduct = {"id": "2",
+    "categoryId": "1",
+    "name": "Black Sunglasses",
+    "description": "The best glasses in the world",
+    "price":100,
+    "imageUrls":["https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg","https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg","https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg"]}
+	const {imageUrls, description, ...rest} = validProduct
+	const cartProduct = {...rest, quantity: 1}
+            chai.request(server).post('/me/cart').set('Authorization', `Bearer ${token}`).send(validProduct).end((err, res) => {
+                res.should.have.status(201)
+                user.cart[0].should.deep.equal(cartProduct)
+                res.body.should.deep.equal(user.cart)
+                done()
+            })
+        })
+    it("should increment the quantity of the supplied product when the product already exists in the cart", (done) => {
+        const validProduct = {"id": "2",
+    "categoryId": "1",
+    "name": "Black Sunglasses",
+    "description": "The best glasses in the world",
+    "price":100,
+    "imageUrls":["https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg","https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg","https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg"]}
+	const {imageUrls, description, ...rest} = validProduct
+	const cartProduct = {...rest, quantity: 1}
+    user.cart = [cartProduct]
+            chai.request(server).post('/me/cart').set('Authorization', `Bearer ${token}`).send(validProduct).end((err, res) => {
+                user.cart[0].quantity.should.equal(2)
+                done()
+            })
+        })
+    })
 
-     })
     describe('/PUT me/cart/:productId', () => { 
-
-     })
+        beforeEach(() => {
+            user.cart = []
+        })
+        it('should respond with 403 when no token provided or token is invalid', (done) => {
+            const productId=2
+            chai.request(server).put(`/me/cart/${productId}`).end((err, res) => {
+                res.should.have.status(403)
+                done()
+            })
+        })       
+        it('should respond with 400 when provided product id does not exist', (done) => {
+            const productId=12
+            chai.request(server).put(`/me/cart/${productId}`).set('Authorization', `Bearer ${token}`).end((err, res) => {
+                res.should.have.status(400)
+                done()
+            })
+        })       
+        it('should respond with 404 when corresponding product does not exist in cart', (done) => {
+            const productId=2
+            chai.request(server).put(`/me/cart/${productId}`).set('Authorization', `Bearer ${token}`).end((err, res) => {
+                res.should.have.status(404)
+                done()
+            })
+        })       
+        it("should respond with 201, update corresponding product quantity, and return the user's cart", (done) => {
+            const testProduct = {id: '8', categoryId: '4', name: 'Coke cans', price:110, quantity: 1}
+            const productId = 8
+            const newQuantity = {quantity: 4}
+            user.cart = [testProduct]
+            chai.request(server).put(`/me/cart/${productId}`).set('Authorization', `Bearer ${token}`).send(newQuantity).end((err, res) => {
+                res.should.have.status(201)
+                res.body.should.deep.equal(user.cart)
+                done()
+            })
+        })       
+    })
+    
     describe('/DELETE me/cart/:productId', () => { 
-
+        it('should respond with 403 when no token provided or token is invalid', (done) => {
+            const productId=2
+            chai.request(server).delete(`/me/cart/${productId}`).end((err, res) => {
+                res.should.have.status(403)
+                done()
+            })
+        })    
+        it('should respond with 400 when provided product id does not exist', (done) => {
+            const productId=12
+            chai.request(server).delete(`/me/cart/${productId}`).set('Authorization', `Bearer ${token}`).end((err, res) => {
+                res.should.have.status(400)
+                done()
+            })
+        })    
+        it('should respond with 404 when corresponding product does not exist in cart', (done) => {
+            const productId=2
+            chai.request(server).delete(`/me/cart/${productId}`).set('Authorization', `Bearer ${token}`).end((err, res) => {
+                res.should.have.status(404)
+                done()
+            })
+        })    
+        it("should respond with 200, remove corresponding product from user's cart and return the user's cart", (done) => {
+            const productId=2
+            const testProduct = {
+                    "id": "2",
+                    "categoryId": "1",
+                    "name": "Black Sunglasses",
+                    "price":100,
+                    "quantity": 2       
+            }
+            user.cart=[testProduct]
+            chai.request(server).delete(`/me/cart/${productId}`).set('Authorization', `Bearer ${token}`).end((err, res) => {
+                res.should.have.status(200)
+                user.cart.should.not.include(testProduct)
+                res.body.should.deep.equal(user.cart)
+                done()
+            })
+        })    
      })
 });
