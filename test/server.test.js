@@ -239,30 +239,29 @@ describe('Login', () => {
 });
 
 describe('validateRequestToken', () => {
-  // TODO refactor setup???
   const userName = 'yellowleopard753';
-  const token = jwt.sign({ userName }, SECRET_KEY, { expiresIn: '1 day' });
-  const request = {
-    headers: {
-      authorization: `Bearer ${token}`,
-    },
-  };
 
   it('should return an object with valid prop equal to true and a decoded prop if request contains a valid jwt', () => {
+    const token = jwt.sign({ userName }, SECRET_KEY, { expiresIn: '1 day' });
+    const request = {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    };
     const response = validateRequestToken(request);
     response.valid.should.be.true;
     response.should.have.own.property('decoded');
   });
-  const invalidToken = jwt.sign({ userName }, 'invalid_key', {
-    expiresIn: '1 day',
-  });
-  const invalidRequest = {
-    headers: {
-      authorization: `Bearer ${invalidToken}`,
-    },
-  };
 
   it('should return an object with valid prop equal to false and an error prop if request contains an invalid jwt or no jwt', () => {
+    const invalidToken = jwt.sign({ userName }, 'invalid_key', {
+      expiresIn: '1 day',
+    });
+    const invalidRequest = {
+      headers: {
+        authorization: `Bearer ${invalidToken}`,
+      },
+    };
     const response = validateRequestToken(invalidRequest);
     response.valid.should.be.false;
     response.should.have.own.property('error');
