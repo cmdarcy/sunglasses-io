@@ -75,28 +75,16 @@ app.get('/brands/:brandId/products', (req, res) => {
 });
 
 app.get('/products', (req, res) => {
-  // TODO refactor to remove nested conditionals?
+  res.writeHead(200, 'Successful operation', {
+    'Content-Type': 'application/json',
+  });
   if (req.query.searchTerm) {
     // filter products by searchTerm compared to product name
     const filteredProducts = products.filter((p) =>
       p.name.includes(req.query.searchTerm),
     );
-    if (filteredProducts.length > 0) {
-      // if filter returns product list greater than 0 return that list of products with a 200
-      res.writeHead(200, 'Successful operation', {
-        'Content-Type': 'application/json',
-      });
-      return res.end(JSON.stringify(filteredProducts));
-    }
-    // else return 404
-    res.writeHead(200, 'No products found', {
-      'Content-Type': 'application/json',
-    });
     return res.end(JSON.stringify(filteredProducts));
   }
-  res.writeHead(200, 'Successful operation', {
-    'Content-Type': 'application/json',
-  });
   return res.end(JSON.stringify(products));
 });
 
