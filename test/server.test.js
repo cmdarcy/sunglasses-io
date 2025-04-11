@@ -81,19 +81,51 @@ describe('Products', () => {
         .end((err, res) => {
           res.should.have.status(200);
           res.body.should.be.an('array');
-          res.body.length.should.be.eql(11);
+          res.body.should.not.be.empty;
+          res.body[0].should.have.all.keys(
+            'id',
+            'categoryId',
+            'name',
+            'description',
+            'price',
+            'imageUrls',
+          );
           done();
         });
     });
 
-    it('should return a 404 error if no products contain search query', (done) => {
+    it('should treat an empty searchTerm the same as not supplying one', (done) => {
+      const searchTerm = '';
+
+      chai
+        .request(server)
+        .get(`/products?searchTerm=${searchTerm}`)
+        .end((err, res) => {
+          res.should.have.status(200);
+          res.body.should.be.an('array');
+          res.body.should.not.be.empty;
+          res.body[0].should.have.all.keys(
+            'id',
+            'categoryId',
+            'name',
+            'description',
+            'price',
+            'imageUrls',
+          );
+          done();
+        });
+    });
+
+    it('should respond with 200 and return an empty array if no products match search query', (done) => {
       const searchTerm = 'blue';
 
       chai
         .request(server)
         .get(`/products?searchTerm=${searchTerm}`)
         .end((err, res) => {
-          res.should.have.status(404);
+          res.should.have.status(200);
+          res.body.should.be.an('array');
+          res.body.should.be.empty;
           done();
         });
     });
@@ -107,6 +139,15 @@ describe('Products', () => {
         .end((err, res) => {
           res.should.have.status(200);
           res.body.should.be.an('array');
+          res.body.should.not.be.empty;
+          res.body[0].should.have.all.keys(
+            'id',
+            'categoryId',
+            'name',
+            'description',
+            'price',
+            'imageUrls',
+          );
           done();
         });
     });

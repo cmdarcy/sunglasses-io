@@ -57,8 +57,6 @@ paths:
             type: array
             items: 
               $ref: "#/definitions/Product"
-        "404":
-          description: No Products found
   /brands:
     get:
       tags:

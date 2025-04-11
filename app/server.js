@@ -89,8 +89,10 @@ app.get('/products', (req, res) => {
       return res.end(JSON.stringify(filteredProducts));
     }
     // else return 404
-    res.writeHead(404, 'No products found');
-    return res.end();
+    res.writeHead(200, 'No products found', {
+      'Content-Type': 'application/json',
+    });
+    return res.end(JSON.stringify(filteredProducts));
   }
   res.writeHead(200, 'Successful operation', {
     'Content-Type': 'application/json',
