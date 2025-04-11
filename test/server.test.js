@@ -169,6 +169,29 @@ describe('Login', () => {
         });
     });
 
+    it('should respond with a 400 status if no userName or password is supplied in request', (done) => {
+      const missingUsername = { password: 567 };
+
+      chai
+        .request(server)
+        .post('/login')
+        .send(missingUsername)
+        .end((err, res) => {
+          res.should.have.status(400);
+          done();
+        });
+    });
+
+    it('should respond with a 400 status if empty body is sent with request', (done) => {
+      chai
+        .request(server)
+        .post('/login')
+        .end((err, res) => {
+          res.should.have.status(400);
+          done();
+        });
+    });
+
     it('should return a 401 error if an incorect username or password is supplied in request', (done) => {
       const incorrectUser = {
         userName: 'yellowleopard753',
