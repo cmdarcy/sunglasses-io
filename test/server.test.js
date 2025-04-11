@@ -30,7 +30,7 @@ describe('Brands', () => {
   });
 
   describe('/GET brands/:brandId/products', () => {
-    it('should response with 404 status when the supplied brand does not exist', (done) => {
+    it('should respond with 404 status when the supplied brand does not exist', (done) => {
       const brandId = '7';
 
       chai
@@ -56,7 +56,7 @@ describe('Brands', () => {
         });
     });
 
-    it('should get all the prouducts of one specific brand when a valid brandId is supplied', (done) => {
+    it('should get all the products of one specific brand when a valid brandId is supplied', (done) => {
       const brandId = '2';
 
       chai
