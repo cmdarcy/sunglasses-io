@@ -463,6 +463,7 @@ describe('Cart', () => {
         .send(newQuantity)
         .end((err, res) => {
           res.should.have.status(201);
+          user.cart[0].quantity.should.equal(newQuantity.quantity);
           res.body.should.deep.equal(user.cart);
           done();
         });
