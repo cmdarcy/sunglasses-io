@@ -11,7 +11,58 @@ const { users } = require('../app/server');
 const should = chai.should();
 chai.use(chaiHttp);
 
-// TODO: Write tests for the server
+// create constants for tests
+const validUser = { userName: 'yellowleopard753', password: 'jonjon' };
+const user = users.find((u) => u.login.username === validUser.userName);
+const invalidUsers = [
+  { userName: 123, password: 456 },
+  { userName: '', password: '' },
+  { userName: 'valid', password: 456 },
+  { userName: 123, password: 'valid' },
+  { userName: '', password: 'valid' },
+  { userName: 'valid', password: '' },
+  { userName: 'valid' },
+  { password: 'valid' },
+  {},
+];
+const incorrectUsers = [
+  {
+    userName: 'yellowleopard753',
+    password: 'incorrectPassword',
+  },
+  {
+    userName: 'incorrectUsername',
+    password: 'jonjon',
+  },
+  {
+    userName: 'incorrectUsername',
+    password: 'incorrectPassword',
+  },
+];
+
+const validToken = jwt.sign({ userName: validUser.userName }, SECRET_KEY, {
+  expiresIn: '1 day',
+});
+const invalidToken = jwt.sign({ userName: validUser.userName }, 'invalid key', {
+  expiresIn: '1 day',
+});
+
+const validProduct = {
+  id: '2',
+  categoryId: '1',
+  name: 'Black Sunglasses',
+  description: 'The best glasses in the world',
+  price: 100,
+  imageUrls: [
+    'https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg',
+    'https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg',
+    'https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg',
+  ],
+};
+const { imageUrls, description, ...rest } = validProduct;
+const cartProduct = { ...rest, quantity: 1 };
+
+const testCasesCart403 = [{}, invalidToken];
 
 describe('Brands', () => {
   describe('/GET brands', () => {
@@ -156,30 +207,17 @@ describe('Products', () => {
 
 describe('Login', () => {
   describe('/POST login', () => {
-    it('should return a 400 error if an invalid userName or password is supplied in request', (done) => {
-      const invalidUser = { userName: '', password: 567 };
-
-      chai
-        .request(server)
-        .post('/login')
-        .send(invalidUser)
-        .end((err, res) => {
-          res.should.have.status(400);
-          done();
-        });
-    });
-
-    it('should respond with a 400 status if no userName or password is supplied in request', (done) => {
-      const missingUsername = { password: 567 };
-
-      chai
-        .request(server)
-        .post('/login')
-        .send(missingUsername)
-        .end((err, res) => {
-          res.should.have.status(400);
-          done();
-        });
+    invalidUsers.forEach((testUser) => {
+      it('should respond with 400 status if an invalid user object is supplied in request body', (done) => {
+        chai
+          .request(server)
+          .post('/login')
+          .send(testUser)
+          .end((err, res) => {
+            res.should.have.status(400);
+            done();
+          });
+      });
     });
 
     it('should respond with a 400 status if empty body is sent with request', (done) => {
@@ -192,46 +230,42 @@ describe('Login', () => {
         });
     });
 
-    it('should return a 401 error if an incorect username or password is supplied in request', (done) => {
-      const incorrectUser = {
-        userName: 'yellowleopard753',
-        password: 'incorrectPW',
-      };
-
-      chai
-        .request(server)
-        .post('/login')
-        .send(incorrectUser)
-        .end((err, res) => {
-          res.should.have.status(401);
-          done();
-        });
+    incorrectUsers.forEach((testUser) => {
+      it('should return a 401 error if an incorect username and/or password is supplied in request', (done) => {
+        chai
+          .request(server)
+          .post('/login')
+          .send(testUser)
+          .end((err, res) => {
+            res.should.have.status(401);
+            done();
+          });
+      });
     });
 
-    const user = { userName: 'yellowleopard753', password: 'jonjon' };
     it('should return 200 if a valid username and password are supplied in request', (done) => {
       chai
         .request(server)
         .post('/login')
-        .send(user)
+        .send(validUser)
         .end((err, res) => {
           res.should.have.status(200);
           done();
         });
     });
 
-    it('should respond with a new jwt if no current access token existed for user', (done) => {
-      const testJwt = jwt.sign({ userName: user.userName }, SECRET_KEY, {
-        expiresIn: '1 day',
-      });
-
+    it('should respond with a jwt if correct username and password supplied in request', (done) => {
       chai
         .request(server)
         .post('/login')
-        .send(user)
+        .send(validUser)
         .end((err, res) => {
           res.should.have.status(200);
-          res.body.should.deep.equal(testJwt);
+          res.body.should.be.a('string');
+
+          const decoded = jwt.decode(res.body);
+          decoded.should.have.property('userName').equal(validUser.userName);
+          decoded.should.have.property('exp');
           done();
         });
     });
@@ -239,13 +273,10 @@ describe('Login', () => {
 });
 
 describe('validateRequestToken', () => {
-  const userName = 'yellowleopard753';
-
   it('should return an object with valid prop equal to true and a decoded prop if request contains a valid jwt', () => {
-    const token = jwt.sign({ userName }, SECRET_KEY, { expiresIn: '1 day' });
     const request = {
       headers: {
-        authorization: `Bearer ${token}`,
+        authorization: `Bearer ${validToken}`,
       },
     };
     const response = validateRequestToken(request);
@@ -254,9 +285,6 @@ describe('validateRequestToken', () => {
   });
 
   it('should return an object with valid prop equal to false and an error prop if request contains an invalid jwt or no jwt', () => {
-    const invalidToken = jwt.sign({ userName }, 'invalid_key', {
-      expiresIn: '1 day',
-    });
     const invalidRequest = {
       headers: {
         authorization: `Bearer ${invalidToken}`,
@@ -269,26 +297,25 @@ describe('validateRequestToken', () => {
 });
 
 describe('Cart', () => {
-  const userName = 'yellowleopard753';
-  const token = jwt.sign({ userName }, SECRET_KEY, { expiresIn: '1 day' });
-  const user = users.find((u) => u.login.username === userName);
-
   describe('/GET me/cart', () => {
-    it('should respond with 403 if no token provided or token is invalid', (done) => {
-      chai
-        .request(server)
-        .get('/me/cart')
-        .end((err, res) => {
-          res.should.have.status(403);
-          done();
-        });
+    testCasesCart403.forEach((testCase) => {
+      it('should respond with 403 when no token provided or token is invalid', (done) => {
+        chai
+          .request(server)
+          .get('/me/cart')
+          .send(testCase)
+          .end((err, res) => {
+            res.should.have.status(403);
+            done();
+          });
+      });
     });
 
     it('should respond with 200 and return the cart if valid token is supplied', (done) => {
       chai
         .request(server)
         .get('/me/cart')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${validToken}`)
         .end((err, res) => {
           res.should.have.status(200);
           res.body.should.deep.equal(user.cart);
@@ -298,21 +325,28 @@ describe('Cart', () => {
   });
 
   describe('/POST me/cart', () => {
-    it('should respond with 403 when no token provided or token is invalid', (done) => {
-      chai
-        .request(server)
-        .post('/me/cart')
-        .end((err, res) => {
-          res.should.have.status(403);
-          done();
-        });
+    beforeEach(() => {
+      user.cart = [];
+    });
+
+    testCasesCart403.forEach((testCase) => {
+      it('should respond with 403 when no token provided or token is invalid', (done) => {
+        chai
+          .request(server)
+          .post('/me/cart')
+          .send(testCase)
+          .end((err, res) => {
+            res.should.have.status(403);
+            done();
+          });
+      });
     });
 
     it('should respond with 400 when no product is supplied', (done) => {
       chai
         .request(server)
         .post('/me/cart')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${validToken}`)
         .end((err, res) => {
           res.should.have.status(400);
           done();
@@ -336,7 +370,7 @@ describe('Cart', () => {
       chai
         .request(server)
         .post('/me/cart')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${validToken}`)
         .send(invalidProduct)
         .end((err, res) => {
           res.should.have.status(400);
@@ -345,25 +379,10 @@ describe('Cart', () => {
     });
 
     it("should respond with 201, add product to given users cart and return the user's cart", (done) => {
-      const validProduct = {
-        id: '2',
-        categoryId: '1',
-        name: 'Black Sunglasses',
-        description: 'The best glasses in the world',
-        price: 100,
-        imageUrls: [
-          'https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg',
-          'https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg',
-          'https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg',
-        ],
-      };
-      const { imageUrls, description, ...rest } = validProduct;
-      const cartProduct = { ...rest, quantity: 1 };
-
       chai
         .request(server)
         .post('/me/cart')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${validToken}`)
         .send(validProduct)
         .end((err, res) => {
           res.should.have.status(201);
@@ -373,26 +392,12 @@ describe('Cart', () => {
         });
     });
     it('should increment the quantity of the supplied product when the product already exists in the cart', (done) => {
-      const validProduct = {
-        id: '2',
-        categoryId: '1',
-        name: 'Black Sunglasses',
-        description: 'The best glasses in the world',
-        price: 100,
-        imageUrls: [
-          'https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg',
-          'https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg',
-          'https://image.shutterstock.com/z/stock-photo-yellow-sunglasses-white-backgound-600820286.jpg',
-        ],
-      };
-      const { imageUrls, description, ...rest } = validProduct;
-      const cartProduct = { ...rest, quantity: 1 };
       user.cart = [cartProduct];
 
       chai
         .request(server)
         .post('/me/cart')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${validToken}`)
         .send(validProduct)
         .end((err, res) => {
           user.cart[0].quantity.should.equal(2);
@@ -406,16 +411,19 @@ describe('Cart', () => {
       user.cart = [];
     });
 
-    it('should respond with 403 when no token provided or token is invalid', (done) => {
-      const productId = 2;
+    testCasesCart403.forEach((testCase) => {
+      it('should respond with 403 when no token provided or token is invalid', (done) => {
+        const productId = 2;
 
-      chai
-        .request(server)
-        .put(`/me/cart/${productId}`)
-        .end((err, res) => {
-          res.should.have.status(403);
-          done();
-        });
+        chai
+          .request(server)
+          .put(`/me/cart/${productId}`)
+          .send(testCase)
+          .end((err, res) => {
+            res.should.have.status(403);
+            done();
+          });
+      });
     });
 
     it('should respond with 400 when provided product id does not exist', (done) => {
@@ -424,7 +432,7 @@ describe('Cart', () => {
       chai
         .request(server)
         .put(`/me/cart/${productId}`)
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${validToken}`)
         .end((err, res) => {
           res.should.have.status(400);
           done();
@@ -437,7 +445,7 @@ describe('Cart', () => {
       chai
         .request(server)
         .put(`/me/cart/${productId}`)
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${validToken}`)
         .end((err, res) => {
           res.should.have.status(404);
           done();
@@ -445,21 +453,14 @@ describe('Cart', () => {
     });
 
     it("should respond with 201, update corresponding product quantity, and return the user's cart", (done) => {
-      const testProduct = {
-        id: '8',
-        categoryId: '4',
-        name: 'Coke cans',
-        price: 110,
-        quantity: 1,
-      };
-      const productId = 8;
+      const productId = 2;
       const newQuantity = { quantity: 4 };
-      user.cart = [testProduct];
+      user.cart = [validProduct];
 
       chai
         .request(server)
         .put(`/me/cart/${productId}`)
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${validToken}`)
         .send(newQuantity)
         .end((err, res) => {
           res.should.have.status(201);
@@ -471,16 +472,23 @@ describe('Cart', () => {
   });
 
   describe('/DELETE me/cart/:productId', () => {
-    it('should respond with 403 when no token provided or token is invalid', (done) => {
-      const productId = 2;
+    beforeEach(() => {
+      user.cart = [];
+    });
 
-      chai
-        .request(server)
-        .delete(`/me/cart/${productId}`)
-        .end((err, res) => {
-          res.should.have.status(403);
-          done();
-        });
+    testCasesCart403.forEach((testCase) => {
+      it('should respond with 403 when no token provided or token is invalid', (done) => {
+        const productId = 2;
+
+        chai
+          .request(server)
+          .delete(`/me/cart/${productId}`)
+          .send(testCase)
+          .end((err, res) => {
+            res.should.have.status(403);
+            done();
+          });
+      });
     });
 
     it('should respond with 400 when provided product id does not exist', (done) => {
@@ -489,7 +497,7 @@ describe('Cart', () => {
       chai
         .request(server)
         .delete(`/me/cart/${productId}`)
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${validToken}`)
         .end((err, res) => {
           res.should.have.status(400);
           done();
@@ -502,7 +510,7 @@ describe('Cart', () => {
       chai
         .request(server)
         .delete(`/me/cart/${productId}`)
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${validToken}`)
         .end((err, res) => {
           res.should.have.status(404);
           done();
@@ -511,22 +519,15 @@ describe('Cart', () => {
 
     it("should respond with 200, remove corresponding product from user's cart and return the user's cart", (done) => {
       const productId = 2;
-      const testProduct = {
-        id: '2',
-        categoryId: '1',
-        name: 'Black Sunglasses',
-        price: 100,
-        quantity: 2,
-      };
-      user.cart = [testProduct];
+      user.cart = [validProduct];
 
       chai
         .request(server)
         .delete(`/me/cart/${productId}`)
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${validToken}`)
         .end((err, res) => {
           res.should.have.status(200);
-          user.cart.should.not.include(testProduct);
+          user.cart.should.not.include(validProduct);
           res.body.should.deep.equal(user.cart);
           done();
         });
